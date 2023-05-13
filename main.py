@@ -1,12 +1,11 @@
 import tkinter as tk
-from tkinter import messagebox
 from tkinter import ttk
 
 class TimetableGeneratorApp(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Timetable Generator")
-        self.geometry("400x200")
+        self.geometry("600x400")
 
         # Subject input variables
         self.num_theory_subjects = tk.IntVar()
@@ -43,66 +42,25 @@ class TimetableGeneratorApp(tk.Tk):
         # Generate theory subject schedule
         for i in range(num_theory_subjects):
             subject_name = f"Theory Subject {i+1}"
-            schedule = []
-            morning_periods = num_theory_periods // 2
-            afternoon_periods = num_theory_periods - morning_periods
-
-            # Check if the subject has lab in the afternoon
-            has_lab = False
-            if num_labs > 0:
-                has_lab = True
-                num_labs -= 1
-
-            if has_lab:
-                # Assign lab periods in the afternoon
-                lab_periods = ["Lab"] * 3
-                schedule.extend(lab_periods)
-            else:
-                # Assign theory periods in the morning
-                theory_periods = [subject_name] * morning_periods
-                schedule.extend(theory_periods)
-
-            # Assign remaining theory periods in the afternoon
-            remaining_periods = [subject_name] * afternoon_periods
-            schedule.extend(remaining_periods)
-
+            schedule = [subject_name] * num_theory_periods
             timetable.append(schedule)
 
         # Generate analytic subject schedule
         for i in range(num_analytic_subjects):
             subject_name = f"Analytic Subject {i+1}"
-            schedule = []
-
-            # Assign two consecutive periods for analytic subjects
-            analytic_periods = [subject_name] * 2
-            schedule.extend(analytic_periods)
-
+            schedule = [subject_name] * num_theory_periods
             timetable.append(schedule)
 
         # Generate lab schedule
         for i in range(num_labs):
-            subject_name = f"Lab {i+ 1}"
-            schedule = []
-            lab_day = i % 6  # Assign lab on different days
-            lab_period = num_theory_periods - 3  # Assign lab in the afternoon
-
-            # Assign all three periods for the same lab
-            lab_periods = [subject_name] * 3
-            schedule.extend(lab_periods)
-
-            # Insert lab schedule into the chosen day
-            timetable[lab_day].insert(lab_period, schedule)
+            lab_name = f"Lab {i+1}"
+            schedule = [lab_name] * 3  # Labs have 3 periods
+            timetable.append(schedule)
 
         # Apply additional constraints
         for day_schedule in timetable:
-            # Assign a library period as the last period
+            day_schedule.extend(["Club Activity"] * 2)  # Assign two periods in the afternoon to club activity
             day_schedule.append("Library Period")
-
-            # Assign two periods in the afternoon to club activity
-            club_activity_periods = ["Club Activity"] * 2
-            day_schedule[num_theory_periods:num_theory_periods+2] = club_activity_periods
-
-            # Assign CCR period
             day_schedule.append("CCR Period")
 
         # Display the generated timetable
@@ -112,32 +70,33 @@ class TimetableGeneratorApp(tk.Tk):
         # Create a new window to display the timetable
         timetable_window = tk.Toplevel(self)
         timetable_window.title("Timetable")
-        timetable_window.geometry("600x400")
+        timetable_window.geometry("800x400")
 
-        # Create a text widget and scrollbar
-        scrollbar = ttk.Scrollbar(timetable_window)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # Create a treeview widget
+        timetable_tree = ttk.Treeview(timetable_window)
 
-        timetable_text = tk.Text(timetable_window, yscrollcommand=scrollbar.set)
-        timetable_text.pack(fill=tk.BOTH, expand=True)
+        timetable_tree['columns'] = tuple(str(i) for i in range(1, len(timetable[0])+1))
+        timetable_tree.heading('#0', text='Day')
+        
+        for i in range(1, len(timetable[0])+1):
+            timetable_tree.heading(str(i), text=f'Period {i}')
 
-        # Insert the timetable content into the text widget
-        periods_per_day = 7
-
+        # Insert timetable data
         for day, day_schedule in enumerate(timetable):
-            timetable_text.insert(tk.END, f"Day {day + 1}:\n")
+            timetable_tree.insert('', 'end', text=f'Day {day+1}', values=tuple(day_schedule))
 
-            for period, subject in enumerate(day_schedule):
-                timetable_text.insert(tk.END, f"Period {period + 1}: {subject}\n")
+        # Configure treeview columns
+        for col in timetable_tree['columns']:
+            timetable_tree.column(col, width=120)
 
-            # Add a blank line between days
-            timetable_text.insert(tk.END, "\n")
+        # Create a scrollbar
+        scrollbar = ttk.Scrollbar(timetable_window, orient='vertical', command=timetable_tree.yview)
+        timetable_tree.configure(yscroll=scrollbar.set)
+        scrollbar.pack(side='right', fill='y')
 
-        # Configure the scrollbar
-        scrollbar.config(command=timetable_text.yview)
-
+        # Pack the treeview widget
+        timetable_tree.pack(fill='both', expand=True)
 
 if __name__ == "__main__":
     app = TimetableGeneratorApp()
     app.mainloop()
-
